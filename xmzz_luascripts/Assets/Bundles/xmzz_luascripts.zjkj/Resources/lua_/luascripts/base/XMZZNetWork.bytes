@@ -1,0 +1,92 @@
+XMZZNetWork={}
+local this=XMZZNetWork
+
+this.heartTimer = nil --心跳协程
+this.heartCMD=111  --心跳协议号\
+this.SocketID=nil
+this.ConnectIP=nil
+this.ConnectPort=nil
+this.isOnline=true--判断是否在线
+this.Callback = nil --连接成功回调
+
+function this.ConnectServer(callback)
+	this.ConnectIP=GlobalControl.GameData.Url
+	this.ConnectPort=GlobalControl.GameData.Port
+	this.Callback=callback
+	SocketRuntime.ConnectJsonSocket(this.ConnectIP,this.ConnectPort,this.OnConnect,this.OnDisconnect,this.OnErrorconnect,this.ReConnectSever)
+end
+
+function  this.OnConnect(id)
+	Factory.logErrorTrace("服务器成功连接-----------SocketID"..id)
+	this.SocketID=id
+	this.isOnline=true
+	NetWorkManager.RegisterJsonCallBack(this.SocketID,XMZZCMD.gameCmd,XMZZResponse)
+	this.OpenHeart()
+	if this.Callback then
+		this.Callback()
+	end
+end
+---socket断开回调
+function  this.OnDisconnect()
+	Tools.Print("red",'socket移除==========='..this.SocketID)
+	this.CloseHeart()
+	NetWorkManager.ReconnectdSocket(this.SocketID)
+end
+---socket异常回调
+function this.OnErrorconnect()
+	Tools.Print("red",'socket抛锚==========='..this.SocketID)
+
+end
+---断网后重连回调
+function this.ReConnectSever(socketid,isSuccess)
+	print(socketid,isSuccess)
+	if isSuccess then
+		Factory.logErrorTrace("服务器成功连接-----------SocketID"..socketid)
+		this.SocketID=socketid
+		this.isOnline=true
+		this.OpenHeart()
+		XMZZRequest.ConnectLabaGameSever()--发送重连请求
+	else
+		UIManager.ShowMessageBox("连接超过最大时长\n请检查网络是否正常后再重新连接",Application.Quit)
+	end
+end
+
+
+---发送数据
+function this.SendMessage(cmd,msgData)
+	if msgData == nil or this.isOnline==false then print("SendMessage ERROR: cmd="..cmd.." msgData = nil") return end
+	NetWorkManager.SendMessage(this.SocketID,cmd,msgData)
+end
+
+---开启心跳
+function this.OpenHeart()
+	Tools.Print("red","XYSGJ心跳开启------------------------------")
+	NetWorkManager.OpenHeart("SHTHeartTimer",this.SocketID,this.ReceiveClientHeartBeat_TimeOutCallBack)
+end
+---关闭心跳
+function this.CloseHeart()
+	Tools.Print("red","XYSGJ心跳关闭------------------------------")
+	NetWorkManager.CloseHeart("SHTHeartTimer",this.SocketID)
+end
+
+---监听客户端到服务器心跳包返回超时回调
+function this.ReceiveClientHeartBeat_TimeOutCallBack()
+	if this.isOnline then
+		print("服务器心跳返回超时!!!!!!!!!!!!!!!!!!!!!")
+		this.OnDisconnect()
+		return
+	end
+end
+
+-----------------------------------------------------------
+------移除注册的网络事件json回调
+function this.UnRegisterJsonCallBack()
+	NetWorkManager.UnRegisterJsonCallBack(this.SocketID,XMZZCMD.gameCmd)
+end
+
+---销毁网络对象,
+function this.Dispose()
+	this.UnRegisterJsonCallBack()
+	this.CloseHeart()
+	SocketRuntime.CloseSocket(this.SocketID)
+end

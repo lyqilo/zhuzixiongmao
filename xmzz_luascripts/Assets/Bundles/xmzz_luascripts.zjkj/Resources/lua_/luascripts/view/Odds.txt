@@ -1,0 +1,107 @@
+module("Odds",package.seeall)
+
+Time = UnityEngine.Time
+local gameName = "XMZZ"
+local bundleName = "Prefab"
+local editorPath = ""
+local prefabName = "OddsPlay"
+local Input = UnityEngine.Input
+
+uiObg = nil
+zuo = nil
+you = nil
+back = nil
+biao = nil
+local HelpList ={} 
+local NowHelpIndex = 1
+local Odds = {
+    [1] = {5,20,50},
+    [2] = {5,20,50},
+    [3] = {5,20,50},
+    [4] = {5,20,50},
+    [5] = {5,20,50},
+    [6] = {10,30,200},
+    [7] = {10,40,300},
+    [8] = {20,50,500},
+}
+function GetViewObj()
+    uiObg = Factory.LoadObjectFromBundle(gameName,bundleName,editorPath..prefabName)
+    Factory.SetToParent(uiObg,UIpanel)
+    uiObg.name = prefabName
+    zuo = uiObg.transform:Find("zuo"):GetComponent("Button")
+    you = uiObg.transform:Find("you"):GetComponent("Button")
+    back = uiObg.transform:Find("back"):GetComponent("Button")
+    biao = uiObg.transform:Find("biao").gameObject
+    biao:SetActive(false)
+    Factory.AddClick(you,Addflip)
+    Factory.AddClick(zuo,Subflip)
+    Factory.AddClick(back,Back)
+    for i = 1,4 do
+        HelpList[i] = Factory.LoadSpriteFromBundle(gameName,"Image","guize_"..i)
+    end
+    NowHelpIndex = 1
+    uiObg:GetComponent("Image").sprite = HelpList[NowHelpIndex]
+    OddsUpdate()
+end
+function OnCreate()
+    if uiObg == nil then
+        GetViewObj()
+    else
+        Init()
+    end
+    
+end
+function Init()
+    if uiObg then
+        uiObg:SetActive(true)
+        OddsUpdate()
+    end
+end
+function OnClose()
+    if uiObg then
+        Factory.DestroyObject(uiObg)
+    end
+    uiObg = nil
+end
+function Addflip()
+    if NowHelpIndex < #HelpList then
+		NowHelpIndex = NowHelpIndex+1
+		uiObg:GetComponent("Image").sprite = HelpList[NowHelpIndex]
+	else
+		NowHelpIndex = 1
+		uiObg:GetComponent("Image").sprite = HelpList[NowHelpIndex]
+	end
+    if NowHelpIndex == 2 then
+        biao:SetActive(true)
+    else
+        biao:SetActive(false)
+    end
+    
+end
+function Subflip()
+    if NowHelpIndex > 1 then
+		NowHelpIndex = NowHelpIndex-1
+		uiObg:GetComponent("Image").sprite = HelpList[NowHelpIndex]
+	else
+		NowHelpIndex = #HelpList
+		uiObg:GetComponent("Image").sprite = HelpList[NowHelpIndex]
+	end
+    if NowHelpIndex == 2 then
+        biao:SetActive(true)
+    else
+        biao:SetActive(false)
+    end
+end
+function Back()
+    if uiObg then
+        uiObg:SetActive(false)
+    end
+end
+function OddsUpdate()
+    for i = 1,8 do
+	    for k = 1, 3 do
+			local a = XMZZPlay.NowBet/30*Odds[i][k]
+			biao.transform:Find(i.."/"..k):GetComponent("Text").text = Factory.GetToXMZZ(a)
+		end
+	end
+end

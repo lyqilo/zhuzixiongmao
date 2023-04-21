@@ -1,0 +1,57 @@
+module("XMZZRequest",package.seeall)
+
+--点击开始转动
+function StartPlayReq(nstake)
+    local msg = {
+        stake = nstake,--nstake
+    }
+    XMZZNetWork.SendMessage(XMZZCMD.gameCmd.PlayFruit, msg)
+end
+
+function QuitGameScenes()
+	
+	local msg = {
+	    empty = 0
+    }
+	print("退出游戏")
+	XMZZNetWork.SendMessage(XMZZCMD.gameCmd.QuitGame, msg)
+end
+function StartDengLong(isrotate,number)
+    local msg = {
+	    isRotate = isrotate,
+		 stake =number --nstake
+    }
+	 XMZZNetWork.SendMessage(XMZZCMD.gameCmd.PlayFruit, msg)
+end
+
+--请求奖池
+function JackpotReq()
+	local msg = 
+	{
+        RpcId = XMZZCMD.gameCmd.Jackpot
+    }
+    XMZZNetWork.SendMessage(XMZZCMD.gameCmd.Jackpot, msg)
+end
+---加入游戏房间
+function JoinGameReq()
+
+    local msg =
+    {
+        uid = GlobalControl.GameData.Uid,
+        roomId =GlobalControl.GameData.RoomId
+    }
+
+    XMZZNetWork.SendMessage(XMZZCMD.gameCmd.JoinGame, msg)
+end
+
+--拉霸游戏断网重连
+function ConnectLabaGameSever()
+	
+    local msg=
+    {
+        uid=GlobalControl.GameData.Uid,
+        roomId=GlobalControl.GameData.RoomId,
+    }
+	
+    XMZZNetWork.SendMessage(XMZZCMD.gameCmd.ConnectGame,msg)
+end

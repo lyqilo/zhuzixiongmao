@@ -1,0 +1,13 @@
+module("XMZZCMD",package.seeall)
+
+--游戏协议
+gameCmd = 
+{
+	PlayFruit = 2000,          --开始10056    sgj   1031    tgg    2000
+	Jackpot = 3000,            --奖池
+	QuitGame = 9001,            --退出游戏
+	broken =9999,--被挤掉线
+	JoinGame = 9000,	        --进入游戏   10030
+	ConnectGame=9007,			--断网重连
+}
+

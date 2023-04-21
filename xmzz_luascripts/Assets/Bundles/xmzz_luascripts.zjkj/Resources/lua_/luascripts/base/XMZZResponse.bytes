@@ -1,0 +1,45 @@
+module("XMZZResponse",package.seeall)
+
+--接收旋转数据
+function OnPlayFruitRsp(msgData)
+	
+    XMZZPlay.HandlePlayFruit(msgData)
+end
+--接收奖池消息
+function OnJackpotRsp(msg)
+
+    XMZZPlay.HandleJackpot(msg)
+end
+
+---被挤掉线重新连接
+function OnbrokenRsp(msgData)
+
+    if msgData.Error == 700 then
+        XMZZPlay.ClearGameState()
+    else
+        UIManager.ShowTip(msgData.Message)
+    end
+end
+
+--进入游戏
+function OnJoinGameRsp(msgData)
+    if msgData.Error == ErrorCode.Code.success then
+        XMZZPlay.JoinGameRsp(msgData)
+    end
+end
+--断网重连
+function OnConnectGameRsp(msgData)
+    if msgData.Error == ErrorCode.Code.success then
+        XMZZPlay.NetWorkOutAge()
+	else
+		UIManager.ShowTip(msgData.Message)
+    end
+end
+---退出回调
+function OnQuitGameRsp(msgData)
+	if msgData.Error == ErrorCode.Code.success then
+        XMZZPlay.ClearGameState()
+	else
+	
+    end
+end

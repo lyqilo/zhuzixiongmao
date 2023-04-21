@@ -1,0 +1,1252 @@
+﻿module("XMZZPlay",package.seeall)
+
+require("Base/XMZZHeadRequire")
+function OnCreate()
+    XMZZNetWork.ConnectServer( function()
+        XMZZRequest.JoinGameReq()
+    end)
+end
+Time = UnityEngine.Time
+local gameName ="XMZZ"
+local bundleName = "Prefab"
+local editorPath = ""
+local prefabName = "XMZZPlay"
+local Input = UnityEngine.Input
+
+uiObg = nil
+start_btn = nil
+stop_btn = nil
+quit_btn = nil
+help_btn = nil
+jia_btn = nil
+jian_btn = nil
+bet_txt = nil
+nick_txt = nil
+head = nil
+myMoney_txt = nil
+win_txt = nil
+maxBet_btn = nil
+auto_btn = nil
+AniJinbi = nil
+AniBigwin = nil
+AniMwin = nil
+Temporaryfunction = nil
+lineParent = nil
+quitPanel = nil
+FreePanle = nil
+WT = nil
+jackpot = nil
+crl = nil
+isduanxian = false
+WildAll={
+    [1]={
+        isScroll=false,--每列旋转状态
+        line1=nil,--
+        line2=nil,--两列格子
+        Wild = nil,
+        WT = nil,
+        WT1 = nil
+    },
+    [2]={
+        isScroll=false,
+        line1=nil,
+        line2=nil,
+        Wild = nil,
+        WT = nil,
+        WT1 = nil
+    },
+    [3]={
+        isScroll=false,
+        line1=nil,
+        line2=nil,
+        Wild = nil,
+        WT = nil,
+        WT1 = nil
+    },
+    [4]={
+        isScroll=false,
+        line1=nil,
+        line2=nil,
+        Wild = nil,
+        WT = nil,
+        WT1 = nil
+    },
+    [5]={
+        isScroll=false,
+        line1=nil,
+        line2=nil,
+        Wild = nil,
+        WT = nil,
+        WT1 = nil
+    },
+}
+
+local Delaylist = {}
+local SgIcon = {}                -- 15个图标集合
+local SgIconTwo = {}             -- 第二例15个随机图标
+local NowBetIndex = 0
+NowBet = 0
+
+local isBtnStartDown = false
+local btnStartTime = 0
+local scrollTime = 0
+local isRun = false
+local isScroll = false
+local speed = 20
+local isAuto = false
+local typeAuto = 0
+local ResultAnimationIcon = {}
+local SpriteList = {}
+local IsquickAni = nil
+local lines = {}
+local winLineList = {}
+local winLineIndex = {}
+
+local isShowLines = false
+local showLineTime = 0
+local curShowLine = 1
+
+local coroutineTable = {} 
+local freetypeIndex = 5
+local freeTypeTwo = 5
+local lastautoIndex = 0
+local jackpotTime = 0
+local feirot = {}
+local wtList = {}
+local isBackFree = false
+local tiao = false
+local Pos = {
+    [1] = Vector3(-330,-4,0),
+    [2] = Vector3(-167,-4,0),
+    [3] = Vector3(0,-4,0),
+    [4] = Vector3(167,-4),
+    [5] = Vector3(330,-4,0)
+}
+--开始按钮点下
+function OnBtnDownClick()
+    isBtnStartDown = true
+    AudioManager:PlayEffectMusic("Panda_Click")
+end
+--开始按钮抬起
+function OnBtnUpClick()
+    if isBtnStartDown then
+		isBtnStartDown = false
+		btnStartTime=0
+	
+		stop_btn.gameObject:SetActive(true)
+        stop_btn:GetComponent("Image").color = Color(1,1,1,1)
+        stop_btn.enabled = false
+		OnSendGameMessage()
+	end
+end
+function Update()
+    if isRun == true then
+		scrollTime=scrollTime+Time.deltaTime
+		if scrollTime>= 2 then
+			OnStopRoll()
+		end
+	end
+    jackpotTime = jackpotTime + Time.deltaTime
+	
+	if jackpotTime > 5 then
+		jackpotTime=0
+		XMZZRequest.JackpotReq()
+	end
+end
+function FixedUpdate()
+ 
+    if isBtnStartDown then
+		btnStartTime = btnStartTime + Time.deltaTime
+		if btnStartTime > 2 then
+			isBtnStartDown=false
+			btnStartTime=0
+			AutoGameStart()
+		end
+	end
+    if not isScroll then return end
+	for i=1,5 do
+		if  WildAll[i].isScroll==true  then  
+				WildAll[i].line1.transform:Translate(Vector3(0,-1,0) * Time.deltaTime * speed)
+				WildAll[i].line2.transform:Translate(Vector3(0,-1,0) * Time.deltaTime * speed)
+			if WildAll[i].line1.transform.localPosition.y<=-463  then
+				WildAll[i].line1.transform.localPosition=Vector3(0,463,0)
+			end
+			if WildAll[i].line2.transform.localPosition.y<=-463 then
+				WildAll[i].line2.transform.localPosition=Vector3(0,463,0)
+			end
+		end
+	end
+end
+
+--开始转动
+function StartRun()
+    auto_btn:GetComponent("Image").color = Color(1,1,1,1)
+    stop_btn:GetComponent("Image").color = Color(1,1,1,1)
+    isRun = true
+	scrollTime = 0
+	speed = 20
+  
+    if XMZZData.ReciveResult.freeType == 1 and typeAuto == 2 then
+        for i=1,freeTypeTwo do
+            DanFalse(i,true)
+            WildAll[i].isScroll = true
+            WildAll[i].WT:SetActive(false)
+            WildAll[i].WT1:SetActive(false)
+        end
+    elseif XMZZData.ReciveResult.freeType == 0 and typeAuto == 2 then
+        for i=1,5 do
+            if freetypeIndex ~= i then
+                DanFalse(i,true)
+                WildAll[i].WT:SetActive(false)
+                WildAll[i].WT1:SetActive(false)
+                WildAll[i].isScroll = true
+            end
+        end
+    else
+        for i=1,5 do
+            WildAll[i].isScroll = true
+            WildAll[i].WT:SetActive(false)
+            WildAll[i].WT1:SetActive(false)
+            DanFalse(i,true)
+        end
+    end
+    
+    isScroll = true
+    IsquickAni = nil
+   
+    Factory.DelayRun(0.2,function()
+        if typeAuto~=2 then
+             stop_btn.enabled = true 
+            auto_btn.enabled = true
+        end
+       
+    end)
+end
+function OnStopRoll()
+    stop_btn.enabled = false
+    stop_btn:GetComponent("Image").color = Color(0.5,0.5,0.5,1)
+    auto_btn.enabled = false
+    auto_btn:GetComponent("Image").color = Color(0.5,0.5,0.5,1)
+    local index = 1
+   
+    if XMZZData.ReciveResult.freeType == 0 and typeAuto == 2 then
+        repeat
+            
+            if freetypeIndex ~= index and index <= 5 then
+                Wildshaung(index)
+               Factory.DelayRun(0.2 * index, OffResultScroll, index)
+            end
+            index = index+1
+        until index > 5
+    elseif XMZZData.ReciveResult.freeType == 1 and typeAuto == 2 then
+         for i =1,freeTypeTwo do
+           Wildshaung(i)
+            if IsWtWild(i) == 3 then
+                table.insert(feirot,i)
+            end
+        end
+        repeat
+            Factory.DelayRun(0.2 * index, OffResultScroll, index)
+            index = index+1
+        until index > freeTypeTwo
+    else
+       
+        repeat
+            Wildshaung(index)
+            Factory.DelayRun(0.2 * index, OffResultScroll, index)
+            index = index+1
+        until index > 5
+    end
+    isRun = false
+end
+
+function OffResultScroll(index)
+    AudioManager:PlayEffectMusic("Panda_TurnStop")
+    ReplaceIcomMessage(index)
+	WildAll[index].isScroll=false
+	WildAll[index].line1.transform.localPosition = Vector3(0,-10,0)
+	WildAll[index].line2.transform.localPosition = Vector3(0,463,0)
+    WildAll[index].line1.transform:DOLocalMove(Vector3(0,10,0),0.1):OnComplete(function()
+        WildAll[index].line1.transform:DOLocalMove(Vector3(0,0,0),0.1)
+    end)
+    local func = function()
+        isScroll = false
+        Factory.DelayRun(0.4,function()Settle()end)
+    end
+    if XMZZData.ReciveResult.freeType == 0 and typeAuto == 2 then
+        if freetypeIndex == 5 and index == 4 then
+            func()
+        else
+            if index == 5 then
+                func()
+            end
+        end
+    elseif XMZZData.ReciveResult.freeType == 1 and typeAuto == 2 then
+        if index == freeTypeTwo then
+            func()
+        end
+    else
+        if index == 5 then
+            func()
+        end
+    end   
+
+   
+end
+function FirstStopGrid()
+    stop_btn.enabled = false
+    stop_btn:GetComponent("Image").color = Color(0.5,0.5,0.5,1)
+    
+    local index = 1
+    repeat
+     Wildshaung(index)   
+        FirstOffResultScroll(index)
+        index = index+1
+    until index > 5
+    isRun = false
+end
+function FirstOffResultScroll(index)
+    ReplaceIcomMessage(index)
+	WildAll[index].isScroll=false
+	WildAll[index].line1.transform.localPosition = Vector3(0,-10,0)
+	WildAll[index].line2.transform.localPosition = Vector3(0,463,0)
+    WildAll[index].line1.transform:DOLocalMove(Vector3(0,10,0),0.1):OnComplete(function()
+        WildAll[index].line1.transform:DOLocalMove(Vector3(0,0,0),0.1)
+    end)
+    if index == 5 then
+        isScroll = false
+        Factory.DelayRun(0.2,function()Settle()end)
+	end
+end
+--初始化信息
+function InstanceGameMessage()
+    EventTriggerListener.Get(start_btn).onPointerDown = EventTriggerListener.Get(start_btn).onPointerDown + OnBtnDownClick
+    EventTriggerListener.Get(start_btn).onPointerUp = EventTriggerListener.Get(start_btn).onPointerUp + OnBtnUpClick
+    
+    Factory.AddClick(jia_btn,AddClickBet)
+    Factory.AddClick(jian_btn,SubClickBet)
+    Factory.AddClick(maxBet_btn,MaxBet)
+    Factory.AddClick(quit_btn,ExitGame)
+    Factory.AddClick(stop_btn,FirstStopGrid)
+    Factory.AddClick(auto_btn,CloseAuto)
+    Factory.AddClick(help_btn,function()
+        Odds.OnCreate()
+    end)
+        
+
+    for i = 1,#XMZZData.betArrs do
+        if XMZZData.winFreeVo.lastBetNumber == XMZZData.betArrs[i] then
+            NowBetIndex = i
+            NowBet = XMZZData.betArrs[NowBetIndex]
+            bet_txt.text = tostring(NowBet)
+        end
+        if XMZZData.winFreeVo.lastBetNumber == 0 then
+            NowBetIndex = 1
+            NowBet = XMZZData.betArrs[NowBetIndex]
+            bet_txt.text = tostring(NowBet)
+        end
+    end 
+    for i = 1,5 do
+        WildAll[i].isScroll = false
+        WildAll[i].line1 = uiObg.transform:Find("IconWildCrl/wild/wild"..i.."/line1").gameObject
+        WildAll[i].line2 = uiObg.transform:Find("IconWildCrl/wild/wild"..i.."/line2").gameObject
+        WildAll[i].WT = uiObg.transform:Find("IconWildCrl/wild/wild"..i.."/line1/WT").gameObject
+        WildAll[i].Wild = uiObg.transform:Find("IconWildCrl/wild/wild"..i).gameObject
+        WildAll[i].WT1 = uiObg.transform:Find("IconWildCrl/wild/wild"..i.."/line1/WT1").gameObject
+    end
+    a =0
+    for i = 1,3 do
+        for k = 1,5 do
+            a = a + 1
+            SgIcon[a] = WildAll[k].line1.transform:Find("icon"..i).gameObject
+            SgIconTwo[a] = WildAll[k].line2.transform:Find("icon"..i).gameObject
+        end
+    end
+    for i = 1,10 do
+        SpriteList[i] = Factory.LoadSpriteFromBundle(gameName,"Image","gameicon_"..i)
+    end
+    for i=1,30 do
+        lines[i] = lineParent.transform:Find("lineRender"..i):GetComponent("LineRenderer")
+    end
+    nick_txt.text = XMZZData.winFreeVo.nickname
+    head.sprite = GlobalControl.GetPlayerHead()
+    myMoney_txt.text = tostring(Myscore)
+    UpdateBeat:Add(Update,self)
+    FixedUpdateBeat:Add(FixedUpdate,self)
+end
+
+function GetViewObj()
+    uiObg = Factory.LoadObjectFromBundle(gameName,bundleName,editorPath..prefabName)
+    if uiObg then
+        Factory.SetToParent(uiObg,UIpanel)
+        uiObg.name = prefabName
+        start_btn = uiObg.transform:Find("downCrl/start_btn").gameObject
+        quit_btn = uiObg.transform:Find("bg/quit_btn"):GetComponent("Button")
+        help_btn = uiObg.transform:Find("bg/help_btn"):GetComponent("Button")
+        jia_btn = uiObg.transform:Find("downCrl/bet/jia_btn"):GetComponent("Button")
+        jian_btn = uiObg.transform:Find("downCrl/bet/jian_btn"):GetComponent("Button")
+        stop_btn = uiObg.transform:Find("downCrl/stop_btn"):GetComponent("Button")
+        nick_txt = uiObg.transform:Find("downCrl/user/nick_txt"):GetComponent("Text")
+        head = uiObg.transform:Find("downCrl/user/head"):GetComponent("Image")
+        myMoney_txt = uiObg.transform:Find("downCrl/user/jinbi/myscore_txt"):GetComponent("Text")
+        win_txt = uiObg.transform:Find("downCrl/winpanle/win_txt"):GetComponent("Text")
+        bet_txt = uiObg.transform:Find("downCrl/bet/bet_txt"):GetComponent("Text")
+        maxBet_btn = uiObg.transform:Find("downCrl/max_btn"):GetComponent("Button")
+        auto_btn = uiObg.transform:Find("downCrl/auto_btn"):GetComponent("Button")
+        AniJinbi = uiObg.transform:Find("AniCrl/Jinbi").gameObject
+        AniBigwin = uiObg.transform:Find("AniCrl/Bigwin").gameObject
+        AniMwin = uiObg.transform:Find("AniCrl/Mwin").gameObject
+        lineParent = uiObg.transform:Find("Lines").gameObject
+        quitPanel = uiObg.transform:Find("quitPanel").gameObject
+        FreePanle = uiObg.transform:Find("FreePanle").gameObject
+        WT = uiObg.transform:Find("IconWildCrl/wild/wt").gameObject
+        jackpot = uiObg.transform:Find("IconWildCrl/wild/jack_txt").gameObject
+        crl = uiObg.transform:Find("IconWildCrl/wild/crl").gameObject
+        InstanceGameMessage()
+        AudioManager:PlayBgMusic("Panda_Bgm")
+    end
+end
+function JoinGameRsp(msgData)
+    
+    if uiObg == nil then
+		GlobalControl.InitMusicVolume()
+		GlobalControl.AddAllAudios("XMZZ","Sounds")
+		GlobalControl.EnterGame(XMZZHeadRequire.LoadedPath())
+		XMZZData.winFreeVo.lastBetNumber = msgData.userProfileVo.lastBetNumber
+		XMZZData.betArrs = msgData.roomVo.betArrs
+		XMZZData.ReciveResult.freeGameCount = msgData.winFreeVo.currentNumber
+		XMZZData.winFreeVo.nickname = msgData.userProfileVo.nickname
+		Myscore = msgData.userProfileVo.goldNumber
+		XMZZData.ReciveResult.freeType = msgData.winFreeVo.freeType
+		XMZZData.ReciveResult.freeRate =  msgData.winFreeVo.freeRate
+        GetViewObj()
+       
+        if  XMZZData.ReciveResult.freeGameCount  == 5  then
+            FreePanle:SetActive(true)
+            FreePanle.transform:Find("free_txt"):GetComponent("Text").text = XMZZData.ReciveResult.freeGameCount
+            freetypeIndex = 5
+            WT.transform:Find("WT").gameObject.transform.localPosition = Vector3(0,463,0)
+            WT.transform.localPosition = Vector3(330,-4,0)
+            WT:SetActive(true)
+            WT.transform:Find("WT").gameObject.transform:DOLocalMove(Vector3(0,0,0),1):OnComplete(function()
+                DanFalse(freetypeIndex,false) 
+                lastautoIndex = typeAuto
+                typeAuto = 2
+                isAuto = true
+                freeTypeTwo = freeTypeTwo - 1 
+                stop_btn.gameObject:SetActive(true)
+                stop_btn.enabled = false
+                Factory.DelayRun(0.2,function()OnSendGameMessage() end)  
+            end)
+        elseif XMZZData.ReciveResult.freeGameCount  > 0 and XMZZData.ReciveResult.freeGameCount  <5 and XMZZData.ReciveResult.freeType == 1 then
+               
+                for i = 5-XMZZData.ReciveResult.freeRate+1,5 do
+                    local a = Factory.LoadObjectFromBundle(gameName,bundleName,"wt")
+                    Factory.SetToParent(a,crl)
+                    a.transform.localPosition = Pos[i]
+                    table.insert(wtList,a)
+                    WildAll[i].Wild:SetActive(false)
+                   
+                end
+                freeTypeTwo = 5- XMZZData.ReciveResult.freeRate
+                typeAuto = 2
+                isAuto = true
+                stop_btn.gameObject:SetActive(true)
+                stop_btn.enabled = false
+                Factory.DelayRun(0.2,function()OnSendGameMessage() end)
+               
+        elseif XMZZData.ReciveResult.freeGameCount  > 0 and XMZZData.ReciveResult.freeGameCount  <5 and XMZZData.ReciveResult.freeType == 0 then  
+            print("免费类型1")
+            FreePanle:SetActive(true)
+            FreePanle.transform:Find("free_txt"):GetComponent("Text").text = XMZZData.ReciveResult.freeGameCount
+            freetypeIndex = XMZZData.ReciveResult.freeGameCount
+            WT.transform.localPosition = Pos[XMZZData.ReciveResult.freeGameCount]
+            WT.transform:Find("WT").gameObject.transform.localPosition = Vector3(0,463,0)
+           
+            WT:SetActive(true)
+            WT.transform:Find("WT").gameObject.transform:DOLocalMove(Vector3(0,0,0),1):OnComplete(function()
+                DanFalse(freetypeIndex,false) 
+                lastautoIndex = typeAuto
+                typeAuto = 2
+                isAuto = true
+                stop_btn.gameObject:SetActive(true)
+                stop_btn.enabled = false
+                Factory.DelayRun(0.2,function()OnSendGameMessage() end)  
+            end)
+        end
+    end
+    if uiObg then
+        uiObg:SetActive(true)
+    end
+end
+function NetWorkOutAge()
+    
+    if typeAuto == 0 and isAuto == false and XMZZData.ReciveResult.freeGameCount == 0 then
+        auto_btn.gameObject:SetActive(false)
+        stop_btn.gameObject:SetActive(false)
+        BtnUpdate(true)
+    elseif  typeAuto == 1 and isAuto == true and XMZZData.ReciveResult.freeGameCount == 0 then
+        OnSendGameMessage()
+    elseif typeAuto == 2 and isAuto == true and XMZZData.ReciveResult.freeGameCount > 0 then
+        OnSendGameMessage()
+    elseif typeAuto == 2 and isAuto == true and XMZZData.ReciveResult.freeGameCount == 0 then
+        auto_btn.gameObject:SetActive(false)
+        stop_btn.gameObject:SetActive(false)
+        BtnUpdate(true)
+    end
+end
+
+function OnClose()
+    if uiObg then
+        Factory.DestroyObject(uiObg)
+    end
+    uiObg = nil
+end
+function OnSendGameMessage()
+    if isScroll == true then return end
+   
+	tiao = false
+	if NowBet>Myscore and typeAuto~=2 then
+        isAuto = false
+        typeAuto = 0
+        auto_btn.gameObject:SetActive(false)
+        stop_btn.gameObject:SetActive(false)
+        UIManager.ShowTip("金币不足")
+        BtnUpdate(true)
+	else
+		XMZZRequest.StartPlayReq(NowBet)
+        BtnUpdate(false)
+        print("发送押注信息...当前押注"..NowBet) 
+        win_txt.text = "0"
+        feirot = {}
+       
+        
+      
+        if #ResultAnimationIcon > 0 then
+            local a = #ResultAnimationIcon
+            for i = 1,a do
+                Factory.DestroyObject(ResultAnimationIcon[i])
+            end
+            ResultAnimationIcon = {}
+        end
+	end
+end
+--自动
+function AutoGameStart()
+    typeAuto = 1
+    isAuto = true
+    auto_btn.gameObject:SetActive(true)
+    auto_btn:GetComponent("Image").color = Color(1,1,1,1)
+    auto_btn.gameObject.transform:Find("KS").gameObject:SetActive(true)
+    stop_btn.gameObject:SetActive(false)
+    BtnUpdate(false)
+    OnSendGameMessage()
+end
+function CloseAuto()
+    if typeAuto == 1 and isAuto == true then
+        typeAuto = 0
+        isAuto = false
+        auto_btn:GetComponent("Image").color = Color(0.5,0.5,0.5,1)
+        auto_btn.enabled = false
+        auto_btn.gameObject.transform:Find("KS").gameObject:SetActive(false)
+    else
+        print("不在自动中点击自动无效")
+    end
+end
+--加注
+function AddClickBet()
+	if NowBetIndex < #XMZZData.betArrs  then
+		NowBetIndex = NowBetIndex+1
+		NowBet = XMZZData.betArrs[NowBetIndex]
+		bet_txt.text = tostring(NowBet)
+	else
+		NowBetIndex = 1
+		NowBet = XMZZData.betArrs[NowBetIndex]
+		bet_txt.text = tostring(NowBet)
+	end
+end
+--减注
+function SubClickBet()
+    if NowBetIndex >1 then
+        NowBetIndex = NowBetIndex-1
+        NowBet = XMZZData.betArrs[NowBetIndex]
+        bet_txt.text = tostring(NowBet)
+    else
+		NowBetIndex = #XMZZData.betArrs
+		NowBet = XMZZData.betArrs[NowBetIndex]
+		bet_txt.text = tostring(NowBet)
+    end
+end
+--最大押注
+function MaxBet()
+    NowBetIndex = #XMZZData.betArrs
+	NowBet = XMZZData.betArrs[NowBetIndex]
+	bet_txt.text = tostring(NowBet)
+end
+function QuiteUpdate()
+ SgIcon = {}                -- 15个图标集合
+ SgIconTwo = {}             -- 第二例15个随机图标
+ NowBetIndex = 0
+NowBet = 0
+
+ isBtnStartDown = false
+ btnStartTime = 0
+ scrollTime = 0
+ isRun = false
+ isScroll = false
+ speed = 20
+ isAuto = false
+ typeAuto = 0
+ ResultAnimationIcon = {}
+ SpriteList = {}
+ IsquickAni = nil
+ lines = {}
+ winLineList = {}
+ winLineIndex = {}
+
+ isShowLines = false
+ showLineTime = 0
+ curShowLine = 1
+
+ coroutineTable = {} 
+ freetypeIndex = 5
+ freeTypeTwo = 5
+ lastautoIndex = 0
+ jackpotTime = 0
+ feirot = {}
+ wtList = {}
+end
+--退出游戏
+function ExitGame()
+    quitPanel:SetActive(true)
+    Factory.AddClick(quitPanel.transform:Find("yes"):GetComponent("Button"),function()
+       
+		XMZZRequest.QuitGameScenes()
+    end)
+    Factory.AddClick(quitPanel.transform:Find("no"):GetComponent("Button"),function()
+        quitPanel:SetActive(false)
+    end)
+end
+
+function ClearGameState()
+	for i,v in ipairs(Delaylist) do
+		if v then
+			Factory.CancelDelayRun(v)
+		end
+	end
+	 StopCoroutine(coroutineTable)
+	
+	FixedUpdateBeat:Remove(FixedUpdate,self)
+	UpdateBeat:Remove(Update,self)
+	QuiteUpdate()
+	OnClose()
+	Odds.OnClose()
+	
+	GlobalControl.ClearAudioClip()--清理声音缓存
+    XMZZNetWork.Dispose()--关闭子游戏socket
+    GlobalControl.ExitGame()--卸载子游戏AB包
+end
+--给结果赋值
+function ReplaceIcomMessage(idex)
+    if idex == 1 then
+	    SgIcon[1]:GetComponent("Image").sprite = SpriteList[XMZZData.ReciveResult.iconResult[1]+1]
+		SgIcon[6]:GetComponent("Image").sprite = SpriteList[XMZZData.ReciveResult.iconResult[6]+1]
+		SgIcon[11]:GetComponent("Image").sprite = SpriteList[XMZZData.ReciveResult.iconResult[11]+1]
+	elseif 	idex == 2 then
+		SgIcon[2]:GetComponent("Image").sprite = SpriteList[XMZZData.ReciveResult.iconResult[2]+1]
+		SgIcon[7]:GetComponent("Image").sprite = SpriteList[XMZZData.ReciveResult.iconResult[7]+1]
+		SgIcon[12]:GetComponent("Image").sprite = SpriteList[XMZZData.ReciveResult.iconResult[12]+1]
+	elseif 	idex == 3 then
+		SgIcon[3]:GetComponent("Image").sprite = SpriteList[XMZZData.ReciveResult.iconResult[3]+1]
+		SgIcon[8]:GetComponent("Image").sprite = SpriteList[XMZZData.ReciveResult.iconResult[8]+1]
+		SgIcon[13]:GetComponent("Image").sprite = SpriteList[XMZZData.ReciveResult.iconResult[13]+1]
+	elseif 	idex == 4 then
+		SgIcon[4]:GetComponent("Image").sprite = SpriteList[XMZZData.ReciveResult.iconResult[4]+1]
+		SgIcon[9]:GetComponent("Image").sprite = SpriteList[XMZZData.ReciveResult.iconResult[9]+1]
+		SgIcon[14]:GetComponent("Image").sprite = SpriteList[XMZZData.ReciveResult.iconResult[14]+1]
+	elseif 	idex == 5 then
+		SgIcon[5]:GetComponent("Image").sprite = SpriteList[XMZZData.ReciveResult.iconResult[5]+1]
+		SgIcon[10]:GetComponent("Image").sprite = SpriteList[XMZZData.ReciveResult.iconResult[10]+1]
+		SgIcon[15]:GetComponent("Image").sprite = SpriteList[XMZZData.ReciveResult.iconResult[15]+1]	
+	end
+end
+function Settle()
+    AniSettlment()
+    local time = BigWinAnima()
+    if typeAuto == 0 and isAuto == false then
+        IsquickAni = Factory.DelayRun(time,function()TypeOne() end)
+    elseif typeAuto == 1 and isAuto == true then
+        IsquickAni = Factory.DelayRun(time,function()TypeTwo()end)
+    elseif typeAuto == 2 and isAuto == true then
+        IsquickAni = Factory.DelayRun(time,function()TypeThree()end)
+    end
+end
+--普通类型
+function TypeOne()
+    AinClose()
+   
+    if XMZZData.ReciveResult.isFree == true then
+        
+        AudioManager:PlayEffectMusic("Panda_FreeSpins")
+        FreePanle:SetActive(true)
+        FreePanle.transform:Find("free_txt"):GetComponent("Text").text = XMZZData.ReciveResult.freeGameCount
+        freetypeIndex = 5
+        WT.transform:Find("WT").gameObject.transform.localPosition = Vector3(0,463,0)
+        WT.transform.localPosition = Vector3(330,-4,0)
+        WT:SetActive(true)
+        WT.transform:Find("WT").gameObject.transform:DOLocalMove(Vector3(0,0,0),1):OnComplete(function()
+            DanFalse(freetypeIndex,false)
+            WildAll[freetypeIndex].WT:SetActive(false)
+            WildAll[freetypeIndex].WT1:SetActive(false)
+            lastautoIndex = typeAuto
+            typeAuto = 2
+            isAuto = true
+            freeTypeTwo = freeTypeTwo - 1 
+            
+            Factory.DelayRun(0.2,function()OnSendGameMessage() end)  
+            isBackFree = true
+        end)
+    else
+        auto_btn.gameObject:SetActive(false)
+        stop_btn.gameObject:SetActive(false)
+        BtnUpdate(true)
+        ShowAwardAni()
+    end
+end
+
+
+--自动类型
+function TypeTwo()
+    AinClose()
+    if XMZZData.ReciveResult.isFree == true and XMZZData.ReciveResult.freeType == 0 then
+        AudioManager:PlayEffectMusic("Panda_FreeSpins")
+        FreePanle:SetActive(true)
+        FreePanle.transform:Find("free_txt"):GetComponent("Text").text = XMZZData.ReciveResult.freeGameCount
+        freetypeIndex = 5
+        WT.transform:Find("WT").gameObject.transform.localPosition = Vector3(0,463,0)
+        WT.transform.localPosition = Vector3(330,-4,0)
+        WT:SetActive(true)
+        WT.transform:Find("WT").gameObject.transform:DOLocalMove(Vector3(0,0,0),1):OnComplete(function()
+            DanFalse(freetypeIndex,false) 
+            lastautoIndex = typeAuto
+            typeAuto = 2
+            isAuto = true
+            isBackFree = true
+             freeTypeTwo = freeTypeTwo - 1 
+            Factory.DelayRun(0.2,function()OnSendGameMessage() end)
+        end)
+    else
+        OnSendGameMessage()
+    end
+end
+--免费类型
+function TypeThree()
+    AinClose()
+    if XMZZData.ReciveResult.freeGameCount > 0 then
+        if XMZZData.ReciveResult.freeType == 0 then
+            for i=1,#lines do
+                lines[i].gameObject:SetActive(false)
+            end
+            freetypeIndex = freetypeIndex -1 
+            local one = WT.transform.localPosition
+            local two = WildAll[freetypeIndex].Wild.transform.localPosition
+            print("one----"..WT.transform.localPosition.x)
+            WildAll[freetypeIndex].Wild.transform:DOLocalMove(one,1)
+            print("two----"..WildAll[freetypeIndex].Wild.transform.localPosition.x)
+            WT.transform:DOLocalMove(two,1)
+            print("-----------------------------")
+            Factory.DelayRun(1.2,function()
+                print("++++++++++++++++++++++++++++++++++++++++++")
+              
+                OnSendGameMessage()
+                Factory.DelayRun(0.1,function()
+                    DanFalse(freetypeIndex+1,true)
+                    DanFalse(freetypeIndex,false)
+                    WildAll[freetypeIndex].WT:SetActive(false)
+                    WildAll[freetypeIndex].WT1:SetActive(false)
+                    WildAll[freetypeIndex].Wild.transform.localPosition = two
+                end)  
+            end)
+        elseif XMZZData.ReciveResult.freeType == 1 then
+            if #feirot >0 then
+                if isBackFree then
+                    StopCoroutine(coroutineTable)
+                    for i=1,#lines do
+                        lines[i].gameObject:SetActive(false)
+                    end
+                    local a = Factory.LoadObjectFromBundle(gameName,bundleName,"wt")
+                    local b = Factory.LoadObjectFromBundle(gameName,bundleName,"line1")
+                    local one = WildAll[freeTypeTwo].Wild.transform.localPosition
+                    local two = WildAll[feirot[1]].Wild.transform.localPosition
+                    Factory.SetToParent(a,crl)
+                    Factory.SetToParent(b,crl)
+                    a.transform.localPosition = two
+                    b.transform.localPosition = one
+                    InstanceHA(freeTypeTwo,b)
+                    table.insert(wtList,a)
+                    WildAll[freeTypeTwo].Wild:SetActive(false)
+                    WildAll[feirot[1]].Wild:SetActive(false)
+                    InstanceHA(freeTypeTwo,WildAll[feirot[1]].line1)
+                  
+                    a.transform:DOLocalMove(one,1)
+                    b.transform:DOLocalMove(two,1):OnComplete(function()
+                        Factory.DelayRun(0.1,function() 
+                            Factory.DestroyObject(b)
+                            WildAll[feirot[1]].Wild:SetActive(true)
+                            freeTypeTwo = freeTypeTwo -1
+                            OnSendGameMessage()
+                        end)
+                    end)
+                else
+                    OnSendGameMessage()
+                end
+            else
+                isBackFree = false
+                OnSendGameMessage()
+            end
+        end
+    else
+        print("免费结束       上一次是转动类型"..lastautoIndex)
+        isBackFree = false
+        freetypeIndex = 5
+        freeTypeTwo = 5
+        
+         FreePanle:SetActive(false)
+        if lastautoIndex == 0 then
+            typeAuto = 0
+            isAuto = false
+            stop_btn.gameObject:SetActive(false)
+            BtnUpdate(true)
+            ShowAwardAni()
+        elseif lastautoIndex == 1 then
+            typeAuto = 1
+            isAuto = true 
+            OnSendGameMessage()
+        end
+    end
+end
+
+function IsWtWild(idex)
+   local a = 0
+    for i = 1,15 do
+        if i%5 == idex and XMZZData.ReciveResult.iconResult[i] == 8 then
+            a = a+1
+        end
+    end
+    return a
+end
+
+
+function DanFalse(idex,iskai)
+   
+    if idex == 5 then
+        idex = 0
+    end
+    if iskai then
+        for i = 1,15 do
+            if i%5 == idex then
+                SgIcon[i]:SetActive(true)
+            end
+        end
+    else
+        for i = 1,15 do
+            if i%5 == idex then
+                SgIcon[i]:SetActive(false)
+            end
+        end
+    end
+end
+
+function ICONGO(idex,Obg)
+    local a = 0
+    for i =1,15 do
+        if i%5==idex then
+            a = a+1
+            Obg.transform:Find("icon"..a):GetComponent("Image").sprite = SpriteList[XMZZData.ReciveResult.iconResult[i]+1] 
+        end
+    end
+end
+function Wildshaung(idex)
+    if XMZZData.ReciveResult.iconResult[idex] == 8 and XMZZData.ReciveResult.iconResult[idex+5] == 8 and XMZZData.ReciveResult.iconResult[idex+10] == 8 then
+        WildAll[idex].WT:SetActive(true)
+        WildAll[idex].WT.transform.localPosition = Vector3(0,0,0)
+        SgIcon[idex]:SetActive(false)
+        SgIcon[idex+5]:SetActive(false)
+        SgIcon[idex+10]:SetActive(false)
+        
+    elseif XMZZData.ReciveResult.iconResult[idex] == 8 and XMZZData.ReciveResult.iconResult[idex+5] == 8 and XMZZData.ReciveResult.iconResult[idex+10]~=8 then
+        WildAll[idex].WT:SetActive(true)
+        WildAll[idex].WT.transform.localPosition = Vector3(0,150,0)
+        SgIcon[idex]:SetActive(false)
+        SgIcon[idex+5]:SetActive(false)
+        
+    elseif XMZZData.ReciveResult.iconResult[idex] ~= 8 and XMZZData.ReciveResult.iconResult[idex+5] == 8 and XMZZData.ReciveResult.iconResult[idex+10]==8 then
+        WildAll[idex].WT:SetActive(true)
+        WildAll[idex].WT.transform.localPosition = Vector3(0,-150,0)
+        SgIcon[idex+10]:SetActive(false)
+        SgIcon[idex+5]:SetActive(false)
+        
+    elseif XMZZData.ReciveResult.iconResult[idex] ~= 8 and XMZZData.ReciveResult.iconResult[idex+5] ~= 8 and XMZZData.ReciveResult.iconResult[idex+10]==8 then
+       WildAll[idex].WT:SetActive(true)
+        WildAll[idex].WT.transform.localPosition = Vector3(0,-300,0)
+        SgIcon[idex+10]:SetActive(false)
+       
+     elseif XMZZData.ReciveResult.iconResult[idex] == 8 and XMZZData.ReciveResult.iconResult[idex+5] ~= 8 and XMZZData.ReciveResult.iconResult[idex+10]~=8 then  
+        WildAll[idex].WT:SetActive(true)
+        WildAll[idex].WT.transform.localPosition = Vector3(0,300,0)
+        SgIcon[idex]:SetActive(false)
+       
+    elseif XMZZData.ReciveResult.iconResult[idex] == 8 and XMZZData.ReciveResult.iconResult[idex+5] ~= 8 and XMZZData.ReciveResult.iconResult[idex+10]==8 then  
+        WildAll[idex].WT:SetActive(true)
+        WildAll[idex].WT1:SetActive(true)
+        WildAll[idex].WT.transform.localPosition = Vector3(0,300,0)
+        WildAll[idex].WT1.transform.localPosition = Vector3(0,-300,0)
+        SgIcon[idex]:SetActive(false)
+        SgIcon[idex+10]:SetActive(false)
+    end
+    
+end
+
+function InstanceHA(idex,Obg)
+     if XMZZData.ReciveResult.iconResult[idex] == 8 and XMZZData.ReciveResult.iconResult[idex+5] == 8 and XMZZData.ReciveResult.iconResult[idex+10] == 8 then
+        Obg.transform:Find("WT").gameObject:SetActive(true)
+        Obg.transform:Find("WT").gameObject.transform.localPosition = Vector3(0,0,0)
+        Obg.transform:Find("icon1").gameObject:SetActive(false)
+        Obg.transform:Find("icon2").gameObject:SetActive(false)
+        Obg.transform:Find("icon3").gameObject:SetActive(false)
+        
+    elseif XMZZData.ReciveResult.iconResult[idex] == 8 and XMZZData.ReciveResult.iconResult[idex+5] == 8 and XMZZData.ReciveResult.iconResult[idex+10]~=8 then
+        Obg.transform:Find("WT").gameObject:SetActive(true)
+        Obg.transform:Find("WT").gameObject.transform.localPosition = Vector3(0,150,0)
+        Obg.transform:Find("icon1").gameObject:SetActive(false)
+        Obg.transform:Find("icon2").gameObject:SetActive(false)
+        Obg.transform:Find("icon3"):GetComponent("Image").sprite = SpriteList[XMZZData.ReciveResult.iconResult[idex+10]+1] 
+        print("lai   +2")
+    elseif XMZZData.ReciveResult.iconResult[idex] ~= 8 and XMZZData.ReciveResult.iconResult[idex+5] == 8 and XMZZData.ReciveResult.iconResult[idex+10]==8 then
+        Obg.transform:Find("WT").gameObject:SetActive(true)
+        Obg.transform:Find("WT").gameObject.transform.localPosition = Vector3(0,-150,0)
+        Obg.transform:Find("icon3").gameObject:SetActive(false)
+        Obg.transform:Find("icon2").gameObject:SetActive(false)
+        Obg.transform:Find("icon1"):GetComponent("Image").sprite = SpriteList[XMZZData.ReciveResult.iconResult[idex]+1] 
+        print("lai   +3")
+    elseif XMZZData.ReciveResult.iconResult[idex] ~= 8 and XMZZData.ReciveResult.iconResult[idex+5] ~= 8 and XMZZData.ReciveResult.iconResult[idex+10]==8 then
+        Obg.transform:Find("WT").gameObject:SetActive(true)
+        Obg.transform:Find("WT").gameObject.transform.localPosition = Vector3(0,-300,0)
+        Obg.transform:Find("icon3").gameObject:SetActive(false)
+        Obg.transform:Find("icon2"):GetComponent("Image").sprite = SpriteList[XMZZData.ReciveResult.iconResult[idex+5]+1] 
+        Obg.transform:Find("icon1"):GetComponent("Image").sprite = SpriteList[XMZZData.ReciveResult.iconResult[idex]+1] 
+        print("lai   +4")
+     elseif XMZZData.ReciveResult.iconResult[idex] == 8 and XMZZData.ReciveResult.iconResult[idex+5] ~= 8 and XMZZData.ReciveResult.iconResult[idex+10]~=8 then  
+        Obg.transform:Find("WT").gameObject:SetActive(true)
+        Obg.transform:Find("WT").gameObject.transform.localPosition = Vector3(0,300,0)
+        Obg.transform:Find("icon3"):GetComponent("Image").sprite = SpriteList[XMZZData.ReciveResult.iconResult[idex+10]+1] 
+        Obg.transform:Find("icon2"):GetComponent("Image").sprite = SpriteList[XMZZData.ReciveResult.iconResult[idex+5]+1] 
+        Obg.transform:Find("icon1").gameObject:SetActive(false)
+        print("lai   +5")
+    elseif XMZZData.ReciveResult.iconResult[idex] == 8 and XMZZData.ReciveResult.iconResult[idex+5] ~= 8 and XMZZData.ReciveResult.iconResult[idex+10]==8 then  
+        Obg.transform:Find("WT").gameObject:SetActive(true)
+        Obg.transform:Find("WT1").gameObject:SetActive(true)
+        Obg.transform:Find("WT").gameObject.transform.localPosition = Vector3(0,300,0)
+        Obg.transform:Find("WT1").gameObject.transform.localPosition = Vector3(0,-300,0)
+        Obg.transform:Find("icon3").gameObject:SetActive(false)
+        Obg.transform:Find("icon2"):GetComponent("Image").sprite = SpriteList[XMZZData.ReciveResult.iconResult[idex+5]+1] 
+        Obg.transform:Find("icon1").gameObject:SetActive(false)
+    else
+        Obg.transform:Find("icon3"):GetComponent("Image").sprite = SpriteList[XMZZData.ReciveResult.iconResult[idex+10]+1] 
+        Obg.transform:Find("icon2"):GetComponent("Image").sprite = SpriteList[XMZZData.ReciveResult.iconResult[idex+5]+1] 
+        Obg.transform:Find("icon1"):GetComponent("Image").sprite = SpriteList[XMZZData.ReciveResult.iconResult[idex]+1] 
+        Obg.transform:Find("WT").gameObject:SetActive(false)
+        Obg.transform:Find("WT1").gameObject:SetActive(false)
+    end
+end
+--中奖动画
+function AniSettlment()
+    if XMZZData.ReciveResult.winCoin > 0 then
+        for i = 1,15 do
+            if XMZZData.ReciveResult.animaPoint[i] ~= 1 then
+                SgIcon[i]:GetComponent("Image").color = Color(0.3,0.3,0.3,1)
+            end
+        end
+        for i = 1,#XMZZData.ReciveResult.curLines do
+            if XMZZData.ReciveResult.curLines[i] > 0 then
+                lines[i].gameObject:SetActive(true)
+                if lines[i].positionCount == 0 then--第一次需要布置点
+                    ShowLineRender(lines[i],i)
+                end
+            end
+        end
+    end
+end
+
+--一根一根播线
+function ShowAwardAni()
+
+   if XMZZData.ReciveResult.winCoin>0 then
+        local Dir={}
+        
+        for i=1,15 do
+            if XMZZData.ReciveResult.animaPoint[i] == 1 then
+                local AniNomalObj=nil
+                AniNomalObj=SgIcon[i]
+                Dir["Index"..i]=AniNomalObj
+            end
+        end
+        
+        local t={}
+        for i = 1, #XMZZData.ReciveResult.curLines do
+            if XMZZData.ReciveResult.curLines[i]~=0 then
+                local t2={index=i,content=XMZZData.ReciveResult.curLines[i]}
+                table.insert(t,t2)
+            end
+        end
+        if #t > 1 then
+            for i = 1,#XMZZData.ReciveResult.curLines do
+                lines[i].gameObject:SetActive(false)
+            end
+            for i = 1,15 do
+                SgIcon[i]:GetComponent("Animator").enabled = false
+                SgIcon[i]:GetComponent("Image").color = Color(0.3,0.3,0.3,1)
+            end
+            FindAwardLineIndex(Dir,t,true)
+        end
+        
+   end
+end
+
+local index=1
+-----中奖线对应的索引
+function  FindAwardLineIndex(Dir,t,isStart)
+    
+    if isStart then
+        index=1
+    end
+    coroutineB =  coroutine.start(function ()
+        local curLineIcons= t[index]
+        local ItemTable={}
+
+           for i = 1, #XMZZData.LinsList[curLineIcons.index] do
+            if i>curLineIcons.content then
+                break
+            end
+            local index= "Index"..(XMZZData.LinsList[curLineIcons.index][i])
+            if Dir[index]~=nil then
+                Dir[index]:GetComponent("Animator").enabled = true
+                Dir[index]:GetComponent("Animator"):Play("New State")
+                Dir[index]:GetComponent("Image").color= Color(1,1,1,1)
+               
+            end
+        end
+        
+         coroutine.wait(0.1)
+        for i = 1, #XMZZData.LinsList[curLineIcons.index] do
+            if i>curLineIcons.content then
+                break
+            end
+            local index= "Index"..(XMZZData.LinsList[curLineIcons.index][i])
+            if Dir[index]~=nil then
+                Dir[index]:GetComponent("Animator").enabled = true
+                Dir[index]:GetComponent("Animator"):Play("Icon_anl")
+                Dir[index]:GetComponent("Image").color= Color(1,1,1,1)
+                table.insert(ItemTable, Dir[index])
+            end
+        end
+        lines[curLineIcons.index].gameObject:SetActive(true)
+        coroutine.wait(2.6)
+--        for i, v in pairs(ItemTable) do
+--            v:GetComponent("Animator"):Play("New State")
+--            v:GetComponent("Image").color= Color(1,1,1,1)
+--        end
+       -- coroutine.wait(0.15)
+        for i, v in pairs(ItemTable) do
+            lines[curLineIcons.index].gameObject:SetActive(false)
+            v:GetComponent("Animator").enabled = false
+            v:GetComponent("Image").color= Color(0.3,0.3,0.3,1)
+        end
+
+          index=index+1
+          if index>#t then
+              index=1
+          end
+        coroutine.wait(0.1)
+
+        FindAwardLineIndex(Dir,t)
+
+    end)
+    table.insert(coroutineTable,coroutineB)
+
+end
+
+--布置点
+function ShowLineRender(lineRender,curLineNum)
+	local posList={}
+	for i=1,#XMZZData.LinsList[curLineNum] do
+		posList[i] = Vector3(SgIcon[XMZZData.LinsList[curLineNum][i]].transform.position.x, SgIcon[XMZZData.LinsList[curLineNum][i]].transform.position.y, 90)
+	end
+	lineRender.positionCount = 5
+	for i=1,#posList do
+		lineRender:SetPosition(i-1, posList[i])
+	end
+end
+function BigWinAnima()
+    local timecount = 0
+    local obj = nil
+    local timer = 0
+    if XMZZData.ReciveResult.winCoin >= 10*NowBet then
+        obj = AniMwin
+        timecount = 3.2
+        timer = 2
+         AudioManager:PlayEffectMusic("1")
+    elseif XMZZData.ReciveResult.winCoin < 10*NowBet and XMZZData.ReciveResult.winCoin >= 5*NowBet then
+        obj = AniBigwin
+        timecount = 3.2
+        timer= 2
+        AudioManager:PlayEffectMusic("1")
+    elseif XMZZData.ReciveResult.winCoin >0*NowBet and XMZZData.ReciveResult.winCoin < 5*NowBet then
+        obj = AniJinbi
+        timecount = 1.3
+        timer = 1
+        AudioManager:PlayEffectMusic("Panda_FlyCoins")
+    elseif XMZZData.ReciveResult.winCoin == 0 then
+        
+        timecount = 0.2
+    end
+    if obj then
+        Factory.AddClick(obj.transform:Find("mask"):GetComponent("Button"),function()
+			
+			if tiao then
+				Factory.CancelDelayRun(IsquickAni)
+				obj:SetActive(false)
+				if typeAuto == 0 and isAuto == false then
+					TypeOne()
+				elseif typeAuto == 1 and isAuto == true then
+					TypeTwo()
+				elseif typeAuto == 2 and isAuto == true then
+					TypeThree()
+				end
+				AudioManager:CloseEffectAudio("1")
+				AudioManager:CloseEffectAudio("Panda_FlyCoins")
+			else
+				tiao = true
+				obj.transform:Find("win_txt"):GetComponent("NumberRoller"):RollStop()
+				obj.transform:Find("win_txt"):GetComponent("Text").text =XMZZData.ReciveResult.winCoin
+			end
+				
+        end)
+        
+        obj:SetActive(true)
+        obj.transform:Find("win_txt"):GetComponent("Text").text = ""
+        obj.transform:Find("win_txt"):GetComponent("NumberRoller").text = 0
+        obj.transform:Find("win_txt"):GetComponent("NumberRoller"):RollTo(XMZZData.ReciveResult.winCoin,timer)
+        win_txt.text = XMZZData.ReciveResult.winCoin
+        myMoney_txt.text = Myscore
+    end
+    return timecount
+end
+--移除协程 --<Table>协程列表-- 
+function StopCoroutine(Table)
+    for i = 1, #Table do
+        if Table[i] ~=nil then
+            coroutine.stop(Table[i]) -- 移除协程
+        end
+    end
+    Table={}
+end
+function AinClose()
+    AniJinbi:SetActive(false)
+    AniBigwin:SetActive(false)
+    AniMwin:SetActive(false)
+end
+function BtnUpdate(isup)
+    if isup then
+        jia_btn.enabled = true
+        jia_btn:GetComponent("Image").color = Color(1,1,1,1)
+        jian_btn.enabled = true
+        jian_btn:GetComponent("Image").color = Color(1,1,1,1)
+        maxBet_btn.enabled = true
+        maxBet_btn:GetComponent("Image").color = Color(1,1,1,1)
+        quit_btn.enabled = true
+        quit_btn:GetComponent("Image").color = Color(1,1,1,1)
+        help_btn.enabled = true
+        help_btn:GetComponent("Image").color = Color(1,1,1,1)
+    else
+        jia_btn.enabled = false
+        jia_btn:GetComponent("Image").color = Color(0.5,0.5,0.5,1)
+        jian_btn.enabled = false
+        jian_btn:GetComponent("Image").color = Color(0.5,0.5,0.5,1)
+        maxBet_btn.enabled = false
+        maxBet_btn:GetComponent("Image").color = Color(0.5,0.5,0.5,1)
+        quit_btn.enabled = false
+        quit_btn:GetComponent("Image").color = Color(0.5,0.5,0.5,1)
+        help_btn.enabled = false
+        help_btn:GetComponent("Image").color = Color(0.5,0.5,0.5,1)
+    end
+end
+--接收旋转结果
+function HandlePlayFruit(msgData)
+    if msgData.Error == ErrorCode.Code.success then
+		
+        XMZZData.ReciveResult.iconResult = msgData.iconResult
+        XMZZData.ReciveResult.winCoin = msgData.winCoin
+        XMZZData.ReciveResult.freeGameCount = msgData.freeGameCount
+        XMZZData.ReciveResult.isFree = msgData.isFree
+        XMZZData.ReciveResult.totalMultiple = msgData.totalMultiple
+        XMZZData.ReciveResult.animaPoint = msgData.animaPoint
+        XMZZData.ReciveResult.curLines = msgData.curLines
+        XMZZData.ReciveResult.jackpot = msgData.jackpot
+        
+        print("中奖得分"..XMZZData.ReciveResult.winCoin)
+        print("剩余免费次数"..XMZZData.ReciveResult.freeGameCount)
+        print("是否进入免费"..tostring(XMZZData.ReciveResult.isFree))
+        print("中奖倍数"..XMZZData.ReciveResult.totalMultiple)
+        if XMZZData.ReciveResult.freeGameCount > 0 then
+           XMZZData.ReciveResult.freeType = msgData.freeType
+            print("免费类型"..XMZZData.ReciveResult.freeType)
+        end
+        
+        if typeAuto ==2 then
+            FreePanle.transform:Find("free_txt"):GetComponent("Text").text = XMZZData.ReciveResult.freeGameCount
+        else
+            Myscore = msgData.goldNumber
+            Myscore = Myscore-NowBet
+            myMoney_txt.text = tostring(Myscore)
+        end
+        Myscore = Myscore + XMZZData.ReciveResult.winCoin
+       
+        for i = 1,15 do
+            SgIconTwo[i]:GetComponent("Image").sprite =SpriteList[(math.random(1,9))]
+            SgIcon[i]:GetComponent("Animator").enabled = false
+            SgIcon[i]:GetComponent("Image").color = Color(1,1,1,1)
+        end
+        if typeAuto ~= 2 then
+            WT:SetActive(false)
+            for i = 1,5 do
+                WildAll[i].Wild:SetActive(true)
+                WildAll[i].WT:SetActive(false)
+                WildAll[i].WT1:SetActive(false)
+            end
+            for k = 1,15 do
+                SgIcon[k]:SetActive(true)
+            end
+            if #wtList>0 then
+                for i = 1,#wtList do
+                    Factory.DestroyObject(wtList[i])
+                end
+                wtList = {}
+            end
+        end
+        StopCoroutine(coroutineTable)
+        for i=1,#lines do
+            lines[i].gameObject:SetActive(false)
+        end
+        StartRun()
+	else
+        BtnUpdate(true)
+        stop_btn.gameObject:SetActive(false)
+        auto_btn.gameObject:SetActive(false)
+		UIManager.ShowTip(msgData.Message)
+    end
+end
+--接收奖池信息
+function HandleJackpot(msg)
+    jackpot:GetComponent("NumberRoller"):RollTo(msg.jp,5)
+end
